@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const recognition = new SpeechRecognition();
 
         // Definir configuraciones del reconocimiento de voz
-        recognition.lang = 'es-ES'; // Configurar el idioma a español
+        // Configurar el idioma a español
+        recognition.lang = 'es-ES';
 
         // Escuchar cuando se haya detectado un resultado
         recognition.onresult = function(event) {
