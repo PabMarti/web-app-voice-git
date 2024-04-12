@@ -1,101 +1,78 @@
 document.addEventListener('DOMContentLoaded', function () {
     const resultDiv = document.getElementById('result');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES'; // Configurar el idioma a español
 
-    // Comprobar si el navegador admite la API de reconocimiento de voz
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
+    recognition.onresult = function (event) {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        console.log('Transcripción de voz:', transcript);
 
-        // Definir configuraciones del reconocimiento de voz
-        // Configurar el idioma a español
-        recognition.lang = 'es-ES';
-
-        // Escuchar cuando se haya detectado un resultado
-        recognition.onresult = function (event) {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-            console.log('Transcripción de voz:', transcript);
-
-            // Ejecutar acciones según el comando de voz
-            if (transcript.includes('abrir nueva pestaña')) {
-                window.open('', '_blank');
-                resultDiv.innerHTML = '<p>Nueva pestaña abierta.</p>';
-            } else if (transcript.includes('ir a')) {
-                const url = obtenerUrl(transcript);
-                if (url) {
-                    window.location.href = url;
-                    resultDiv.innerHTML = `<p>Redirigiendo a <strong>${url}</strong>.</p>`;
-                } else {
-                    resultDiv.innerHTML = '<p>Error: No se proporcionó una URL válida.</p>';
-                }
-            } else if (transcript.includes('cerrar pestaña')) {
-                window.close();
-                resultDiv.innerHTML = '<p>Pestaña cerrada.</p>';
-            } else if (transcript.includes('cerrar navegador')) {
-                window.open('', '_self', '');
-                window.close();
-                resultDiv.innerHTML = '<p>Navegador cerrado.</p>';
-            } else if (transcript.includes('tamaño')) {
-                const palabras = transcript.split(' ');
-                const indexTamaño = palabras.indexOf('tamaño');
-
-                // Obtener el tamaño de letra especificado en el comando
-                const tamaño = parseInt(palabras[indexTamaño + 1]);
-
-                // Aplicar el tamaño de letra al elemento de controlTexto
-                if (!isNaN(tamaño)) {
-                    document.body.style.fontSize = tamaño + 'px';
-                    resultDiv.innerHTML = `<p>Tamaño de letra cambiado a <strong>${tamaño}px</strong>.</p>`;
-                } else {
-                    resultDiv.innerHTML = '<p>Error: No se proporcionó un tamaño válido.</p>';
-                }
-            } else {
-                resultDiv.innerHTML = '<p>Comando no reconocido.</p>';
-            }
-
-            // Enviar el comando de voz a MockAPI
-            enviarComandoAVoz(transcript);
-        };
-
-        // Escuchar errores
-        recognition.onerror = function (event) {
-            console.error('Error de reconocimiento de voz:', event.error);
-            resultDiv.innerHTML = '<p>Error al procesar la orden de voz. Por favor, inténtalo de nuevo.</p>';
-        };
-
-        // Iniciar el reconocimiento de voz cuando se haga clic en cualquier parte del documento
-        document.body.addEventListener('click', function () {
+        if (transcript.includes('rita')) {
+            procesarOrden(transcript);
+        } else {
+            resultDiv.innerHTML = '<p>No se ha detectado la palabra "Rita". Por favor, inténtalo de nuevo.</p>';
             recognition.start();
-            resultDiv.innerHTML = '<p>Escuchando... Di tu orden.</p>';
-        });
-    } else {
-        // Si el navegador no admite la API de reconocimiento de voz, mostrar un mensaje de error
-        resultDiv.innerHTML = '<p>Tu navegador no admite la API de reconocimiento de voz. Por favor, actualízalo a una versión más reciente.</p>';
-    }
+        }
+    };
+
+    recognition.onerror = function (event) {
+        console.error('Error de reconocimiento de voz:', event.error);
+        resultDiv.innerHTML = '<p>Error al procesar la orden de voz. Por favor, inténtalo de nuevo.</p>';
+    };
+
+    recognition.start();
 });
 
-// Función para obtener la URL de un comando
+function procesarOrden(transcript) {
+    const resultDiv = document.getElementById('result');
+
+    if (transcript.includes('abrir nueva pestaña')) {
+        window.open('', '_blank');
+        resultDiv.innerHTML = '<p>Nueva pestaña abierta.</p>';
+    } else if (transcript.includes('ir a')) {
+        let url = obtenerUrl(transcript);
+        const términoBusqueda = encodeURIComponent(transcript.replace('rita ir a', '').trim());
+        if (url.includes('.com')) {
+            url =`https://www.${términoBusqueda}`;
+            window.location.href = url;
+            resultDiv.innerHTML = `<p>Redirigiendo a <strong>${url}</strong>.</p>`;
+        } else {
+            url = `https://www.google.com/search?q=${términoBusqueda}`;
+            window.location.href = url;
+            resultDiv.innerHTML = `<p>Realizando búsqueda en Google para <strong>${términoBusqueda}</strong>.</p>`;
+        }
+    } else if (transcript.includes('cerrar pestaña')) {
+        window.close();
+        resultDiv.innerHTML = '<p>Pestaña cerrada.</p>';
+    } else if (transcript.includes('cerrar navegador')) {
+        window.close();
+        resultDiv.innerHTML = '<p>Navegador cerrado.</p>';
+    } else if (transcript.includes('tamaño')) {
+        const palabras = transcript.split(' ');
+        const indexTamaño = palabras.indexOf('tamaño');
+
+        const tamaño = parseInt(palabras[indexTamaño + 1]);
+
+        if (!isNaN(tamaño)) {
+            document.body.style.fontSize = tamaño + 'px';
+            resultDiv.innerHTML = `<p>Tamaño de letra cambiado a <strong>${tamaño}px</strong>.</p>`;
+        } else {
+            resultDiv.innerHTML = '<p>Error: No se proporcionó un tamaño válido.</p>';
+        }
+    } else {
+        resultDiv.innerHTML = '<p>Comando no reconocido.</p>';
+    }
+
+    // Continuar escuchando después de procesar una orden
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES'; // Configurar el idioma a español
+    recognition.start();
+}
+
 function obtenerUrl(transcript) {
     const palabras = transcript.split(' ');
     const indexIrA = palabras.indexOf('ir') + 1;
     return palabras.slice(indexIrA).join(' ');
-}
-
-// Función para enviar el comando de voz a MockAPI
-function enviarComandoAVoz(comando) {
-    fetch('https://65ef77abead08fa78a507acc.mockapi.io/webappvoice', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            comando: comando
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error al enviar el comando de voz a MockAPI');
-        }
-        console.log('Comando de voz enviado correctamente a MockAPI');
-    })
-    .catch(error => console.error('Error:', error));
 }
